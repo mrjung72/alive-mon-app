@@ -1,0 +1,32 @@
+{
+  "name": "alive-mon-app",
+  "version": "1.0.3",
+  "description": "서버 텔넷 접속 확인 도구",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "node app.js",
+    "build": "node -e \"const pkg = require('./package.json'); const { execSync } = require('child_process'); execSync(`pkg app.js --public --compress GZip --target node18-win-x64 --output dist/alive-mon-app-v${pkg.version}.exe`, { stdio: 'inherit' });\""
+  },
+  "bin": {
+    "alive-mon-app": "app.js"
+  },
+  "pkg": {
+    "scripts": [
+      "app.js",
+      "src/**/*.js"
+    ],
+    "assets": [
+      "README.md",
+      "README_KR.md"
+    ],
+    "targets": [
+      "node18-win-x64"
+    ],
+    "outputPath": "dist"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "pkg": "^5.8.1"
+  }
+}
