@@ -58,20 +58,15 @@ const ARGS = parseArgs(args);
 function buildEnMessages() {
   return {
     title: 'Server Telnet Connection Monitor',
-    mainMenuTitle: 'Main Menu',
-    menu1: '1. Server Telnet Connection Check (request/SERVER*.csv)',
-    menu0: '0. Exit',
-    selectPrompt: 'Select function to execute (0-1): ',
-    invalidSelection: 'Invalid selection. Please select again.',
     exit: 'Exiting program.',
     pressEnter: 'Press Enter to continue...',
     createdResultsDir: 'Created results directory:',
     telnetTitle: 'Server Telnet Connection Check',
     DirNotFound: 'Telnet check CSV directory not found: request/',
     CreateDir: 'Please create the directory and add CSV files. (ex request/server_sample.csv)',
-    NoFiles: 'No server CSV files found in request/ directory.',
-    AddFiles: 'Please add server CSV files starting with "server" to the request/ directory. (ex server_sample.csv)',
-    AvailableFiles: 'Available Telnet Check CSV Files:',
+    NoFiles: 'No CSV files found in request/ directory.',
+    AddFiles: 'Please add CSV files to the request/ directory. (ex server_sample.csv)',
+    AvailableFiles: 'Available CSV Files:',
     SelectFile: 'Select CSV file number to use',
     InvalidFile: 'Invalid file selection.',
     SelectedFile: 'Selected CSV file:',
@@ -79,27 +74,23 @@ function buildEnMessages() {
     Timeout: 'Timeout (seconds)',
     Starting: 'Starting telnet connection check...',
     Completed: 'Telnet connection check completed.',
-    Error: 'Error occurred during telnet connection check:'
+    Error: 'Error occurred during telnet connection check:',
+    runAgain: 'Run again? (y/n): '
   };
 }
 
 function buildKrMessages() {
   return {
     title: '서버 텔넷 접속 모니터',
-    mainMenuTitle: '메인 메뉴',
-    menu1: '1. 서버 텔넷 접속 확인 (request/SERVER*.csv)',
-    menu0: '0. 종료',
-    selectPrompt: '실행할 기능을 선택하세요 (0-1): ',
-    invalidSelection: '잘못된 선택입니다. 다시 선택해주세요.',
     exit: '프로그램을 종료합니다.',
     pressEnter: 'Enter를 눌러 계속...',
     createdResultsDir: 'results 디렉토리를 생성했습니다:',
     telnetTitle: '서버 텔넷 접속 확인',
     DirNotFound: '텔넷 확인용 CSV 디렉토리를 찾을 수 없습니다: request/',
     CreateDir: '디렉토리를 생성하고 CSV 파일을 추가해주세요. (ex request/server_sample.csv)',
-    NoFiles: 'request/ 디렉토리에 server CSV 파일이 없습니다.',
-    AddFiles: 'request/ 디렉토리에 "server"로 시작하는 .csv 파일을 추가해주세요. (ex server_sample.csv)',
-    AvailableFiles: '사용 가능한 텔넷 확인 CSV 파일:',
+    NoFiles: 'request/ 디렉토리에 CSV 파일이 없습니다.',
+    AddFiles: 'request/ 디렉토리에 CSV 파일을 추가해주세요. (ex server_sample.csv)',
+    AvailableFiles: '사용 가능한 CSV 파일:',
     SelectFile: '사용할 CSV 파일 번호를 선택하세요',
     InvalidFile: '잘못된 파일 선택입니다.',
     SelectedFile: '선택된 CSV 파일:',
@@ -107,7 +98,8 @@ function buildKrMessages() {
     Timeout: '타임아웃 (초)',
     Starting: '텔넷 접속 확인을 시작합니다...',
     Completed: '텔넷 접속 확인이 완료되었습니다.',
-    Error: '텔넷 접속 확인 중 오류가 발생했습니다:'
+    Error: '텔넷 접속 확인 중 오류가 발생했습니다:',
+    runAgain: '다시 실행하시겠습니까? (y/n): '
   };
 }
 
@@ -152,30 +144,19 @@ class AliveMonApp {
     // 비대화형 실행 경로 우선 처리
     const handled = await this.maybeRunFromCliArgs();
     if (handled) return;
-    await this.showMainMenu();
+    // 대화형 모드: 바로 텔넷 체크 실행
+    await this.runTelnetCheckLoop();
   }
 
-  async showMainMenu() {
-    console.log(`📋 ${msg.mainMenuTitle}`);
-    console.log('------------------------------------------------');
-    console.log(msg.menu1);
-    console.log(msg.menu0);
-    console.log('------------------------------------------------');
-    console.log();
-
-    const choice = await this.askQuestion(msg.selectPrompt);
-    
-    switch(choice.trim()) {
-      case '1':
-        await this.runTelnetCheck();
-        break;
-      case '0':
+  async runTelnetCheckLoop() {
+    while (true) {
+      await this.runTelnetCheck();
+      
+      const runAgain = await this.askQuestion(msg.runAgain);
+      if (runAgain.toLowerCase() !== 'y' && runAgain.toLowerCase() !== 'yes') {
         await this.exitApp();
-        break;
-      default:
-        console.log(`❌ ${msg.invalidSelection}`);
-        await this.waitAndContinue();
-        await this.showMainMenu();
+        return;
+      }
     }
   }
 
@@ -193,7 +174,6 @@ class AliveMonApp {
         console.log(msg.CreateDir);
         if (!(options && options.nonInteractive)) {
           await this.waitAndContinue();
-          await this.showMainMenu();
         }
         return;
       }
@@ -205,14 +185,13 @@ class AliveMonApp {
         timeout = options.timeout ?? 3;
       } else {
         const csvFiles = fs.readdirSync(telnetCheckDir)
-          .filter(file => file.endsWith('.csv') && file.toLowerCase().startsWith('server'));
+          .filter(file => file.endsWith('.csv'));
 
         if (csvFiles.length === 0) {
           console.log(`❌ ${msg.NoFiles}`);
           console.log(msg.AddFiles);
           if (!(options && options.nonInteractive)) {
             await this.waitAndContinue();
-            await this.showMainMenu();
           }
           return;
         }
@@ -232,7 +211,6 @@ class AliveMonApp {
           console.log(`❌ ${msg.InvalidFile}`);
           if (!(options && options.nonInteractive)) {
             await this.waitAndContinue();
-            await this.showMainMenu();
           }
           return;
         }
@@ -261,9 +239,9 @@ class AliveMonApp {
     } catch (error) {
       console.error(`❌ ${msg.Error}`, error.message);
     }
+    // 비대화형 모드가 아니면 루프에서 다시 실행 여부를 묻음
     if (!(options && options.nonInteractive)) {
-      await this.waitAndContinue();
-      await this.showMainMenu();
+      return;
     }
   }
 
@@ -297,10 +275,8 @@ class AliveMonApp {
       await this.exitApp();
       return true;
     }
-    const mode = ARGS.mode; // telnet
-    if (!mode) return false;
-    
-    if (mode === 'telnet') {
+    // CSV 파일이 직접 지정된 경우 비대화형 모드로 실행
+    if (ARGS.csv) {
       await this.runTelnetCheck({
         nonInteractive: true,
         csvPath: ARGS.csv,
@@ -309,10 +285,8 @@ class AliveMonApp {
       await this.exitApp();
       return true;
     }
-    
-    console.log(`❌ Unknown mode: ${mode}`);
-    await this.exitApp();
-    return true;
+    // 그 외에는 대화형 모드로 진행
+    return false;
   }
 
   printUsage() {
@@ -320,18 +294,17 @@ class AliveMonApp {
 Usage: alive-mon-app [options]
 
 Options:
-  --mode=telnet          Run telnet connection check
-  --csv=<path>           CSV file path (required for non-interactive mode)
+  --csv=<path>           CSV file path (for non-interactive mode)
   --timeout=<seconds>    Connection timeout in seconds (default: 3)
   --lang=<en|kr>         Language (default: en)
   --help                 Show this help message
 
 Examples:
-  # Interactive mode
+  # Interactive mode (select CSV file from menu)
   node app.js
 
   # Non-interactive mode with CSV file
-  node app.js --mode=telnet --csv=request/server_list.csv --timeout=5
+  node app.js --csv=request/server_list.csv --timeout=5
 
   # Korean language
   node app.js --lang=kr

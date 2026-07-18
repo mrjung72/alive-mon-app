@@ -1,6 +1,6 @@
 {
   "name": "alive-mon-app",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "서버 텔넷 접속 확인 도구",
   "main": "app.js",
   "scripts": {
