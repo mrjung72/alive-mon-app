@@ -1,6 +1,8 @@
 node_modules/
 dist/
 results/
+dist/
+release/
 *.log
 .DS_Store
 Thumbs.db
